@@ -1,130 +1,126 @@
-
 # MultiCopy
 
-A lightweight clipboard history manager for Windows.
-
-MultiCopy saves copied text so you can easily find and reuse it later. It runs in the background and stores your clipboard history locally.
+MultiCopy is a small clipboard history manager for Windows and macOS. It saves copied text and images so you can find and use them again.
 
 ## Features
 
-- Automatically saves copied text
-- Search clipboard history
-- Pin important entries
-- Copy saved text again
-- Delete individual entries
-- Clear clipboard history
+- Save text and images automatically
+- Search copied text
+- Browse all copies, favorites, links, images, or text
+- Pin, delete, copy, or paste saved items
+- Keep one entry per unique copy, moving it to the top when copied again
+- Clean desktop interface with a custom MultiCopy app icon
 - Pause and resume monitoring
-- Run in the Windows system tray
-- Start automatically with Windows
-- Set a limit for saved history
+- Open the window with `Ctrl + Shift + V`
+- Keep running in the system tray or macOS menu bar
+- Optionally launch when you sign in
+- Set a history limit and automatically remove older unpinned items
+- Export history as text or JSON
 
-## Built With
+## Requirements
 
-- Python
-- Tkinter
-- SQLite
-- pystray
-- Pillow
-
-## Getting Started
-
-### Requirements
-
-- Windows 10 or 11
+- Windows 10/11 or macOS
 - Python 3.11 or newer
-- Git
 
-### Installation
+## Setup
 
-1. Clone the repository:
+Clone the repository:
 
-   ```powershell
-   git clone https://github.com/baderbbh/multicopy.git
-   cd multicopy
-   ```
+```bash
+git clone https://github.com/baderbbh/multicopy.git
+cd multicopy
+```
 
-2. Create a virtual environment:
-
-   ```powershell
-   python -m venv .venv
-   ```
-
-3. Install the required packages:
-
-   ```powershell
-   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-   ```
-
-### Running MultiCopy
-
-Run the application from the project folder:
+**Windows PowerShell**
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe run.py
 ```
 
-MultiCopy will open in a desktop window. You can close the window to keep it running in the system tray.
+**macOS Terminal**
 
-To stop MultiCopy completely, select Exit from the system tray menu.
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python run.py
+```
 
-### Running Tests
+Closing the window keeps MultiCopy in the system tray or menu bar, where supported. Use **Exit** to stop it completely.
 
-Run the automated tests:
+On macOS, allow the application under **System Settings → Privacy & Security → Accessibility** if you want global shortcuts and quick paste to work. You may also need to approve input monitoring. If the shortcut does not work, open MultiCopy from the menu bar instead.
+
+Quick paste copies the selected item to the clipboard, hides MultiCopy, then sends the paste shortcut to the active application. Some applications or macOS permissions can prevent the automatic paste; the item will still be on the clipboard to paste manually.
+
+## Tests
+
+Windows:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-If everything works, the tests should finish with `OK`.
+macOS:
 
-## Troubleshooting
-
-### Python is not recognized
-
-Make sure Python is installed and added to your system PATH.
-
-You can check your Python version using:
-
-```powershell
-python --version
+```bash
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-### The .venv Python executable is not recognized
+## Use MultiCopy without a terminal
 
-This usually means the virtual environment has not been created in the project folder.
+Build a desktop app once, move it to a permanent folder, and enable startup from Settings.
+You need Python only to build MultiCopy, not to run the finished app.
 
-Run:
+**Windows**
+
+In PowerShell, from the project folder:
 
 ```powershell
 python -m venv .venv
-```
-
-Then install the packages again:
-
-```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
 ```
 
-### Missing Python packages
+The build is saved as `dist\MultiCopy.exe`. Copy the executable to a permanent location such as `%LOCALAPPDATA%\Programs\MultiCopy\MultiCopy.exe`. Double-click it to launch. Once it is running, close the window to keep it in the system tray. The tray menu has **Open MultiCopy**, **Pause monitoring**, and **Exit**.
 
-If the application reports a missing module, install the requirements again:
+In **Settings**, select **Launch when I sign in** and save. MultiCopy will then start quietly when you next sign in to Windows. You can disable it from the same settings page. If you move or rename the executable, disable startup first and enable it again from its new location. Keep the executable rather than moving it out of its permanent folder.
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+Windows may show a SmartScreen warning for an unsigned application built locally. Only run executables you've built yourself or obtained from a source you trust.
+
+**macOS**
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+sh scripts/build_macos.sh
 ```
 
-## Privacy
+Move `dist/MultiCopy.app` to Applications and launch it. You can enable sign-in startup in Settings. macOS may require Accessibility and Input Monitoring permission for keyboard shortcuts and quick paste. The macOS build must be made on a Mac; a Windows build cannot produce a macOS application.
 
-MultiCopy stores clipboard history locally on your computer. It does not upload copied text to a server.
+**Only one copy runs at a time.** Opening MultiCopy again asks the existing app to show its window. When MultiCopy is running, its keyboard shortcut does not require VS Code or a terminal.
 
-Clipboard history may contain sensitive information, so you can pause monitoring or delete saved entries when needed.
+The app must stay running in the tray or menu bar for clipboard monitoring and the global shortcut to work. Exit stops both. Launch at sign-in is optional and is disabled by default.
 
-The local database is not encrypted.
+## Data and privacy
 
-## Project Status
+Clipboard history is saved locally and is **not encrypted**. Be careful copying passwords, recovery codes, or other private text. Images are stored as PNG data in the database. MultiCopy does not sync anything online.
 
-MultiCopy is currently in development. Features and behavior may change as the project is tested and improved.
+Windows data folder: `%LOCALAPPDATA%\MultiCopy`
+
+macOS data folder: `~/Library/Application Support/MultiCopy`
+
+To delete all saved data, disable launch at sign-in, exit MultiCopy, and delete the data folder.
+
+Images larger than 10 MB after PNG conversion are skipped. The text export marks images as omitted; the JSON export includes images as base64-encoded PNG data. Deleted unpinned entries cannot be restored from the app.
+
+## Notes
+
+- Only content copied while MultiCopy is running can be saved.
+- Startup must be enabled in settings; it is not enabled by default.
+- Clipboard images and global shortcuts depend on operating-system permissions and clipboard formats.
+- The application has not yet been verified on every Windows and macOS version.
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+MIT. See [LICENSE](LICENSE).

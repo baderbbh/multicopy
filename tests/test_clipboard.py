@@ -1,24 +1,21 @@
 import unittest
-from unittest.mock import Mock
 
-from src.clipboard import ClipboardWatcher
+try:
+    from PySide6.QtCore import QBuffer, QByteArray, QIODevice
+    from PySide6.QtGui import QImage
+    from src.clipboard import MAX_IMAGE_BYTES, image_to_png
+    AVAILABLE = True
+except ImportError:
+    AVAILABLE = False
 
 
+@unittest.skipUnless(AVAILABLE, "PySide6 is not installed")
 class ClipboardTests(unittest.TestCase):
-    def test_new_text_is_reported_once(self):
-        root = Mock()
-        root.clipboard_get.return_value = "Hello"
-        on_copy = Mock()
-        watcher = ClipboardWatcher(root, on_copy)
-        watcher.check()
-        watcher.check()
-        on_copy.assert_called_once_with("Hello")
+    def test_convert_image_to_png(self):
+        image = QImage(4, 4, QImage.Format.Format_ARGB32)
+        image.fill(0xffcc3322)
+        png = image_to_png(image)
+        self.assertTrue(png.startswith(b"\x89PNG"))
 
-    def test_paused_monitoring_skips_text(self):
-        root = Mock()
-        root.clipboard_get.return_value = "Hello"
-        on_copy = Mock()
-        watcher = ClipboardWatcher(root, on_copy)
-        watcher.set_enabled(False)
-        watcher.check()
-        on_copy.assert_not_called()
+    def test_empty_image_is_ignored(self):
+        self.assertIsNone(image_to_png(QImage()))
