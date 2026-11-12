@@ -12,3 +12,9 @@ dist/
 .coverage
 .vscode/
 .idea/
+*.sqlite
+*.sqlite3
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
