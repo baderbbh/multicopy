@@ -1,43 +1,60 @@
 import os
+import plistlib
 import subprocess
 import sys
 from pathlib import Path
 
 APP_NAME = "MultiCopy"
+LABEL = "com.multicopy.app"
+
+
+def executable_arguments():
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--hidden"]
+    return [sys.executable, str(Path(__file__).resolve().parents[1] / "run.py"), "--hidden"]
 
 
 def startup_command():
-    if getattr(sys, "frozen", False):
-        return subprocess.list2cmdline([sys.executable, "--hidden"])
-    python = Path(sys.executable)
-    pythonw = python.with_name("pythonw.exe")
-    if pythonw.exists():
-        python = pythonw
-    project = Path(__file__).resolve().parents[1]
-    return subprocess.list2cmdline([str(python), str(project / "run.py"), "--hidden"])
+    return subprocess.list2cmdline(executable_arguments())
+
+
+def launch_agent():
+    return Path.home() / "Library" / "LaunchAgents" / (LABEL + ".plist")
 
 
 def is_enabled():
-    if os.name != "nt":
-        return False
-    import winreg
-    try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run") as key:
-            value, _ = winreg.QueryValueEx(key, APP_NAME)
-            return value == startup_command()
-    except OSError:
-        return False
+    if sys.platform == "darwin":
+        return launch_agent().exists()
+    if os.name == "nt":
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run") as key:
+                current, _ = winreg.QueryValueEx(key, APP_NAME)
+                return current == startup_command()
+        except OSError:
+            return False
+    return False
 
 
 def set_enabled(enabled):
-    if os.name != "nt":
-        raise RuntimeError("Automatic startup is available on Windows only.")
-    import winreg
-    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run") as key:
+    if sys.platform == "darwin":
+        path = launch_agent()
         if enabled:
-            winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, startup_command())
+            path.parent.mkdir(parents=True, exist_ok=True)
+            content = {"Label": LABEL, "ProgramArguments": executable_arguments(), "RunAtLoad": True}
+            path.write_bytes(plistlib.dumps(content))
         else:
-            try:
-                winreg.DeleteValue(key, APP_NAME)
-            except FileNotFoundError:
-                pass
+            path.unlink(missing_ok=True)
+        return
+    if os.name == "nt":
+        import winreg
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run") as key:
+            if enabled:
+                winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, startup_command())
+            else:
+                try:
+                    winreg.DeleteValue(key, APP_NAME)
+                except FileNotFoundError:
+                    pass
+        return
+    raise RuntimeError("Automatic startup is supported on Windows and macOS.")
