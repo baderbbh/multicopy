@@ -119,7 +119,6 @@ Images larger than 10 MB after PNG conversion are skipped. The text export marks
 - Only content copied while MultiCopy is running can be saved.
 - Startup must be enabled in settings; it is not enabled by default.
 - Clipboard images and global shortcuts depend on operating-system permissions and clipboard formats.
-- The application has not yet been verified on every Windows and macOS version.
 
 ## License
 
